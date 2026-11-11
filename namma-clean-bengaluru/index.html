@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Namma Clean Bengaluru - Civic Waste Management & Rewards</title>
+  <meta name="description" content="Report garbage, track BBMP cleanup progress, check area collection timetables, and earn Clean Points in Bangalore.">
+  
+  <!-- Google Fonts & Font Awesome Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  
+  <!-- App Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- TOP GLASS NAVIGATION BAR -->
+  <nav class="navbar">
+    <a href="#" class="brand">
+      <div class="brand-logo"><i class="fa-solid fa-recycle"></i></div>
+      <div class="brand-text">
+        <h1>Namma Clean Bengaluru</h1>
+        <p>Swachh Namma Ooru Civic Portal</p>
+      </div>
+    </a>
+    
+    <div class="nav-links">
+      <button class="nav-btn active" onclick="switchTab('tab-dashboard')">
+        <i class="fa-solid fa-map-location-dot"></i> Issue Map
+      </button>
+      <button class="nav-btn" onclick="switchTab('tab-track')">
+        <i class="fa-solid fa-list-check"></i> Live Tracking
+      </button>
+      <button class="nav-btn" onclick="switchTab('tab-hotspots')">
+        <i class="fa-solid fa-fire-flame-curved"></i> Hotspot Radar
+      </button>
+      <button class="nav-btn" onclick="switchTab('tab-schedule')">
+        <i class="fa-solid fa-clock"></i> Collection Timetable
+      </button>
+      <button class="nav-btn" onclick="switchTab('tab-rewards')">
+        <i class="fa-solid fa-gift"></i> Rewards Store
+      </button>
+    </div>
+
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <button class="btn-primary" onclick="openReportModal()">
+        <i class="fa-solid fa-camera"></i> Report Garbage
+      </button>
+      <div class="points-badge" onclick="switchTab('tab-rewards')">
+        <i class="fa-solid fa-coins"></i> <span id="user-points-display">450</span> Pts
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTAINER -->
+  <div class="container">
+    
+    <!-- Hero & Stats Row -->
+    <div class="card" style="background: linear-gradient(135deg, rgba(6,182,212,0.15), rgba(16,185,129,0.12)); border-color: rgba(6,182,212,0.3); margin-bottom: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+        <div>
+          <h2 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 6px; background: linear-gradient(135deg, #ffffff, #67e8f9, #34d399); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            Keep Bangalore Clean & Earn Rewards! 🌱
+          </h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 680px;">
+            Report garbage dumps, track BBMP cleanup progress in real-time, view verified before-and-after photo proof, check area truck timetables, and earn Clean Points!
+          </p>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn-primary" onclick="openReportModal()"><i class="fa-solid fa-plus"></i> New Report</button>
+          <button class="btn-secondary" onclick="toggleProfileDrawer()"><i class="fa-solid fa-user-gear"></i> My Profile</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 1: ISSUE MAP & COMPLAINTS SIDEBAR (DEFAULT ACTIVE) -->
+    <div id="tab-dashboard" class="tab-content active">
+      <div style="display: grid; grid-template-columns: 1fr 420px; gap: 24px;">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><i class="fa-solid fa-earth-asia" style="color: #67e8f9;"></i> Bangalore Waste & Hotspots Map</h3>
+            <span class="badge badge-progress"><i class="fa-solid fa-location-crosshairs"></i> BBMP Live Feed</span>
+          </div>
+          <div id="map" style="height: 440px; width: 100%; border-radius: 12px; border: 1px solid var(--border-glass);"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><i class="fa-solid fa-clock-rotate-left" style="color: #fbbf24;"></i> Active Complaints</h3>
+            <button class="btn-secondary" style="padding: 4px 10px; font-size: 0.75rem;" onclick="switchTab('tab-track')">View All</button>
+          </div>
+          <div id="sidebar-complaints-list" style="display: flex; flex-direction: column; gap: 12px; max-height: 440px; overflow-y: auto;">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: LIVE TRACKING & BEFORE/AFTER PROOF -->
+    <div id="tab-track" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title"><i class="fa-solid fa-route" style="color: #60a5fa;"></i> Complaint Tracking & Proof</h3>
+        </div>
+        <div id="full-complaints-list">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: HOTSPOT RADAR -->
+    <div id="tab-hotspots" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title"><i class="fa-solid fa-fire-flame-curved" style="color: #f87171;"></i> Recurring Garbage Hotspots Radar</h3>
+        </div>
+        <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 20px;">
+          Locations with 3+ reports in 30 days are flagged as Garbage Hotspots. Pledge community support to green the spot (+250 Pts)!
+        </p>
+        <div class="area-schedule-grid" id="hotspots-container">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: AREA COLLECTION TIMETABLE -->
+    <div id="tab-schedule" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title"><i class="fa-solid fa-clock" style="color: #34d399;"></i> Bangalore Area Collection Timetables</h3>
+          <div style="width: 240px;">
+            <select class="form-select" id="area-filter-select" onchange="filterAreaSchedules()">
+              <option value="all">All Bangalore Locality Areas</option>
+              <option value="Indiranagar">Indiranagar (10th Main)</option>
+              <option value="Koramangala">Koramangala (5th Block)</option>
+              <option value="Whitefield">Whitefield (Main Rd)</option>
+              <option value="Malleshwaram">Malleshwaram (8th Cross)</option>
+              <option value="HSR Layout">HSR Layout (Sector 1-7)</option>
+              <option value="Jayanagar">Jayanagar (4th Block)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="area-schedule-grid" id="area-schedule-container">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: CLEAN POINTS REWARDS MARKETPLACE -->
+    <div id="tab-rewards" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title"><i class="fa-solid fa-gift" style="color: #c084fc;"></i> Clean Points Marketplace</h3>
+          <div class="points-badge" style="cursor: default;">
+            Balance: <span id="rewards-balance-display">450</span> Clean Points
+          </div>
+        </div>
+        <div class="area-schedule-grid" id="rewards-cards-container">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+    </div>
+
+  </div> <!-- End Container -->
+
+  <!-- FLOATING BOTTOM-RIGHT USER PROFILE FAB BUTTON -->
+  <div class="floating-profile-btn" onclick="toggleProfileDrawer()" title="Open User Profile & Registered Complaints">
+    <i class="fa-solid fa-user"></i>
+  </div>
+
+  <!-- SLIDE-IN USER PROFILE GLASS DRAWER -->
+  <div class="profile-drawer-overlay" id="profile-drawer-overlay" onclick="closeProfileDrawerOnOverlay(event)">
+    <div class="profile-drawer">
+      <div class="drawer-header">
+        <h3 style="font-size: 1.2rem; font-weight: 700; color: #67e8f9; display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-user-gear"></i> User Profile & Settings
+        </h3>
+        <button class="modal-close" onclick="toggleProfileDrawer()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Profile Info -->
+      <div style="background: rgba(9,13,22,0.8); border: 1px solid var(--border-glass); border-radius: var(--radius-md); padding: 18px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px;">
+        <div style="width: 54px; height: 54px; border-radius: 50%; background: linear-gradient(135deg, #06b6d4, #059669); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; font-weight: 800;" id="drawer-user-initials">
+          DK
+        </div>
+        <div>
+          <h4 style="font-size: 1.1rem; font-weight: 700;" id="drawer-user-name">Dayakar Karunakaran</h4>
+          <p style="font-size: 0.8rem; color: var(--text-muted);" id="drawer-user-area">Indiranagar 10th Main (Ward 80)</p>
+          <div style="margin-top: 4px;" id="drawer-user-role-badge">
+            <span class="badge badge-reported" style="background: rgba(255,255,255,0.1); color: white;">Standard Citizen Reporter</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Area Volunteer Representative Opt-In Switch -->
+      <div style="background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); border-radius: var(--radius-md); padding: 16px; margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+          <div>
+            <h4 style="font-size: 0.95rem; font-weight: 700; color: #34d399;">Area Volunteer Representative</h4>
+            <p style="font-size: 0.775rem; color: var(--text-muted);">
+              Opt-in as an official community lead for your locality, help organize cleanups, and get a +20% Clean Points bonus! Or stay a standard reporter.
+            </p>
+          </div>
+          <label class="switch" style="margin-left: 10px;">
+            <input type="checkbox" id="volunteer-toggle-input" onchange="toggleVolunteerStatus(event)">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div style="font-size: 0.75rem; font-weight: 700; color: #34d399; margin-top: 4px;" id="volunteer-status-text">Standard Reporter</div>
+      </div>
+
+      <!-- My Registered Complaints Section inside Profile -->
+      <div>
+        <h4 style="font-size: 1rem; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
+          <span><i class="fa-solid fa-clipboard-user" style="color: #67e8f9;"></i> My Registered Complaints</span>
+          <span style="font-size: 0.75rem; color: var(--text-muted);" id="my-ticket-count-badge">2 Tickets</span>
+        </h4>
+
+        <div id="my-registered-complaints-list" style="display: flex; flex-direction: column; gap: 12px;">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- REPORT GARBAGE MODAL -->
+  <div class="modal-overlay" id="report-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 style="display: flex; align-items: center; gap: 10px; color: #67e8f9;">
+          <i class="fa-solid fa-camera-retro"></i> Report Garbage Dump
+        </h3>
+        <button class="modal-close" onclick="closeReportModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="report-garbage-form" onsubmit="handleFormSubmit(event)">
+        <div class="form-group">
+          <label class="form-label">1. Sample Scenario Photo</label>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+            <button type="button" class="btn-secondary" style="font-size: 0.75rem;" onclick="loadSamplePreset(0)">📍 Indiranagar Dump</button>
+            <button type="button" class="btn-secondary" style="font-size: 0.75rem;" onclick="loadSamplePreset(1)">📍 Koramangala Debris</button>
+            <button type="button" class="btn-secondary" style="font-size: 0.75rem;" onclick="loadSamplePreset(2)">📍 Malleshwaram Market</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">2. Location & Area</label>
+          <input type="text" class="form-control" id="input-location" placeholder="e.g. 10th Main Road, Indiranagar" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">3. Bangalore Ward</label>
+          <select class="form-select" id="input-ward" required>
+            <option value="Ward 80 - Indiranagar">Ward 80 - Indiranagar</option>
+            <option value="Ward 151 - Koramangala">Ward 151 - Koramangala</option>
+            <option value="Ward 45 - Malleshwaram">Ward 45 - Malleshwaram</option>
+            <option value="Ward 85 - Whitefield">Ward 85 - Whitefield</option>
+            <option value="Ward 174 - HSR Layout">Ward 174 - HSR Layout</option>
+          </select>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+          <button type="button" class="btn-secondary" onclick="closeReportModal()">Cancel</button>
+          <button type="submit" class="btn-primary">Submit Ticket (+50 Clean Pts)</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ESCALATION MODAL -->
+  <div class="modal-overlay" id="escalate-modal">
+    <div class="modal-content" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 style="display: flex; align-items: center; gap: 10px; color: #f87171;">
+          <i class="fa-solid fa-triangle-exclamation"></i> Escalate Unresolved Issue
+        </h3>
+        <button class="modal-close" onclick="closeEscalateModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="escalation-form" onsubmit="handleEscalationSubmit(event)">
+        <input type="hidden" id="escalate-ticket-id">
+        <div style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); padding: 12px; border-radius: 8px; margin-bottom: 14px; font-size: 0.85rem; color: #fca5a5;">
+          🚨 Alert directly sent to <strong>BBMP Zonal Joint Commissioner</strong> for emergency 4-hour SLA clearance.
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Ticket ID</label>
+          <input type="text" class="form-control" id="escalate-ticket-display" readonly style="font-family: monospace;">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Reason for Escalation</label>
+          <select class="form-select" id="escalate-reason" required>
+            <option value="Overdue (No crew dispatched after 48 hrs)">Overdue: No crew dispatched after 48 hours</option>
+            <option value="Incomplete Cleaning">Incomplete Cleaning: Garbage partially remaining</option>
+            <option value="False Status Claimed">False Status: Site still dirty</option>
+          </select>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+          <button type="button" class="btn-secondary" onclick="closeEscalateModal()">Cancel</button>
+          <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #ef4444, #dc2626);">Submit Escalation</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- DETAIL & PROOF MODAL -->
+  <div class="modal-overlay" id="detail-modal">
+    <div class="modal-content" style="max-width: 720px;">
+      <div class="modal-header">
+        <h3 id="modal-detail-title" style="display: flex; align-items: center; gap: 10px;">
+          Complaint Details
+        </h3>
+        <button class="modal-close" onclick="closeDetailModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div id="modal-detail-body">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Leaflet Map JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+  <!-- Data & Application Logic -->
+  <script src="js/mockData.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
